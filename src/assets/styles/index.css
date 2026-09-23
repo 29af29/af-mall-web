@@ -1,0 +1,351 @@
+/* ============================================================
+   阿飞商城 · 设计系统
+   主题：极光渐变背景 · 玻璃拟态 · 蓝紫品牌色
+   ============================================================ */
+
+/* ---------------- 设计 Token ---------------- */
+:root {
+  /* 品牌色 */
+  --brand-400: #7b8fe8;
+  --brand-500: #5b6fd8;
+  --brand-600: #4356c4;
+  --brand-soft: #eef1fd;
+  --brand-soft-2: #e2e8fb;
+  --brand-gradient: linear-gradient(135deg, #8b9bee 0%, #6376de 100%);
+
+  /* 强调色：促销 / 价格 */
+  --accent-500: #ff5a3c;
+  --accent-soft: #fff0ec;
+
+  /* 文字 */
+  --text-title: #1f2a47;
+  --text-body: #4a5578;
+  --text-muted: #8892ad;
+  --text-hint: #a8b0c8;
+  --text-on-brand: #ffffff;
+
+  /* 表面与边框 */
+  --surface: #ffffff;
+  --surface-glass: rgba(255, 255, 255, 0.62);
+  --surface-sunken: #f5f7fc;
+  --border: #e8ebf5;
+  --border-strong: #d8ddf0;
+  --glass-border: rgba(255, 255, 255, 0.75);
+
+  /* 圆角 */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  /* 阴影 */
+  --shadow-sm: 0 2px 8px rgba(31, 42, 71, 0.05);
+  --shadow-md: 0 6px 24px rgba(31, 42, 71, 0.08);
+  --shadow-lg: 0 12px 40px rgba(31, 42, 71, 0.12);
+
+  /* 布局 */
+  --container: 1200px;
+  --header-height: 68px;
+
+  /* Element Plus 主色对齐品牌蓝紫 */
+  --el-color-primary: #5b6fd8;
+  --el-color-primary-light-3: #8698e4;
+  --el-color-primary-light-5: #a9b6ec;
+  --el-color-primary-light-7: #ccd4f4;
+  --el-color-primary-light-8: #dde2f8;
+  --el-color-primary-light-9: #eef1fd;
+  --el-color-primary-dark-2: #4356c4;
+  --el-border-radius-base: 10px;
+  --el-font-size-base: 14px;
+}
+
+/* ---------------- 旧变量别名（保证既有页面不破版）---------------- */
+:root {
+  --color-primary: var(--brand-500);
+  --color-primary-light: var(--brand-soft);
+  --color-price: var(--accent-500);
+  --color-title: var(--text-title);
+  --color-text: var(--text-body);
+  --color-text-secondary: var(--text-muted);
+  --color-text-hint: var(--text-hint);
+  --color-bg: #f3f6fc;
+  --color-card: var(--surface);
+  --color-border: var(--border);
+  --radius-card: var(--radius-lg);
+  --radius-btn: var(--radius-md);
+  --shadow-card: var(--shadow-sm);
+  --shadow-card-hover: var(--shadow-md);
+}
+
+/* ---------------- Reset ---------------- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-size: 14px;
+  color: var(--text-body);
+  background-color: #e9effa;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------------- 极光背景层（双层缓慢漂移，让页面“活着”）---------------- */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  inset: -25%;
+  z-index: -1;
+  pointer-events: none;
+  background-repeat: no-repeat;
+}
+
+body::before {
+  background-color: #e9effa;
+  background-image:
+    radial-gradient(closest-side, #a5c0ef, transparent),
+    radial-gradient(closest-side, #c3b0ec, transparent);
+  background-size: 62% 72%, 54% 64%;
+  background-position: 12% 10%, 74% 22%;
+  animation: aurora-a 26s ease-in-out infinite;
+  will-change: transform;
+}
+
+body::after {
+  background-image:
+    radial-gradient(closest-side, #f1c1de, transparent),
+    radial-gradient(closest-side, #ffffff, transparent),
+    radial-gradient(closest-side, #bfd8f7, transparent);
+  background-size: 56% 62%, 46% 52%, 42% 48%;
+  background-position: 84% 84%, 30% 88%, 52% 46%;
+  animation: aurora-b 34s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes aurora-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(3.5%, 2.5%, 0) scale(1.06);
+  }
+}
+
+@keyframes aurora-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-3%, -2%, 0) scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  body::after {
+    animation: none;
+  }
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* ---------------- 布局容器 ---------------- */
+.container {
+  width: 100%;
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ---------------- 卡片 ---------------- */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.card-hover:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+}
+
+/* ---------------- 玻璃拟态 ---------------- */
+.glass {
+  background: var(--surface-glass);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+}
+
+/* ---------------- 文本工具 ---------------- */
+.price {
+  color: var(--accent-500);
+  font-weight: 500;
+}
+
+.text-hint {
+  color: var(--text-hint);
+  font-size: 12px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--text-title);
+  margin-bottom: 20px;
+}
+
+/* ---------------- 品牌按钮（渐变流动 + 按下回弹）---------------- */
+.btn-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 26px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, #8b9bee 0%, #6376de 50%, #8b9bee 100%);
+  background-size: 220% 100%;
+  background-position: 0% 50%;
+  color: var(--text-on-brand);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-position 0.55s ease, transform 0.16s ease,
+    box-shadow 0.25s ease;
+}
+
+.btn-brand:hover {
+  background-position: 100% 50%;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(91, 111, 216, 0.32);
+}
+
+.btn-brand:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* ---------------- 滚动渐入（配合 v-reveal 指令）---------------- */
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, 22px, 0);
+  transition: opacity 0.65s cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 0.65s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.reveal-in {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+/* ---------------- 加购飞入小球 ---------------- */
+.fly-ball {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 9999;
+  border-radius: 50%;
+  background-color: #e2e8fb;
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 6px 18px rgba(31, 42, 71, 0.22);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+/* ---------------- 鼠标视差层（跟随指针轻微位移）---------------- */
+.parallax-layer {
+  position: fixed;
+  inset: -25%;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(closest-side, rgba(191, 216, 247, 0.7), transparent);
+  background-size: 52% 62%;
+  background-position: 44% 58%;
+  background-repeat: no-repeat;
+  transform: translate3d(var(--parallax-x, 0px), var(--parallax-y, 0px), 0);
+  transition: transform 0.7s cubic-bezier(0.22, 0.61, 0.36, 1);
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parallax-layer {
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ---------------- 骨架屏淡出过渡 ---------------- */
+.skeleton-fade-enter-active,
+.skeleton-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.skeleton-fade-enter-from,
+.skeleton-fade-leave-to {
+  opacity: 0;
+}
+
+/* ---------------- 页面切换过渡 ---------------- */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ---------------- 滚动条 ---------------- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd3e8;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b2bcd8;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
