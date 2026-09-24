@@ -18,7 +18,12 @@ const total = ref(0)
 const pageNum = ref(1)
 const pageSize = 8
 const loading = ref(false)
+const showSkeleton = ref(false)
+const hasLoaded = ref(false)
 const keyword = ref('')
+const categoryId = ref(null)
+const categoryName = ref('')
+let skeletonTimer = null
 
 const services = [
   { icon: 'Goods', title: '正品保障', desc: '官方授权 假一赔十' },
@@ -29,9 +34,19 @@ const services = [
 
 const searching = computed(() => !!keyword.value.trim())
 
-const sectionTitle = computed(() =>
-  searching.value ? `“${keyword.value}” 的搜索结果` : '热门推荐'
-)
+const filtering = computed(() => categoryId.value != null)
+
+const sectionTitle = computed(() => {
+  if (searching.value) return `“${keyword.value}” 的搜索结果`
+  if (filtering.value) return categoryName.value || '分类商品'
+  return '热门推荐'
+})
+
+const subtitle = computed(() => {
+  if (searching.value) return ''
+  if (filtering.value) return '该分类下的全部商品'
+  return '为你精心挑选的好物'
+})
 
 const heroProduct = computed(() => goodsList.value[0] || null)
 
@@ -39,21 +54,47 @@ const heroPrice = computed(() =>
   heroProduct.value ? formatPrice(heroProduct.value.minPrice) : '¥799'
 )
 
+/** 列表标识：筛选条件变化时触发列表整体淡入淡出 */
+const listKey = computed(
+  () => `${categoryId.value ?? 'all'}-${keyword.value || 'all'}-${pageNum.value}`
+)
+
 async function loadGoods() {
   loading.value = true
+
+  // 首次加载直接出骨架；后续筛选/翻页只在超过 250ms 时才出骨架，避免快接口闪一下
+  clearTimeout(skeletonTimer)
+  if (hasLoaded.value) {
+    skeletonTimer = window.setTimeout(() => {
+      showSkeleton.value = true
+    }, 250)
+  } else {
+    showSkeleton.value = true
+  }
+
   try {
     const params = { pageNum: pageNum.value, pageSize }
-    if (searching.value) params.key = keyword.value.trim()
-    const data = searching.value
-      ? await searchApi.search(params)
-      : await productApi.spuPage(params)
+    let data
+
+    if (searching.value) {
+      params.key = keyword.value.trim()
+      data = await searchApi.search(params)
+    } else {
+      // 按分类筛选：商品表已冗余 category1Id，直接用它查
+      if (categoryId.value != null) params.category1Id = categoryId.value
+      data = await productApi.spuPage(params)
+    }
+
     goodsList.value = data?.records || []
     total.value = data?.total || 0
   } catch (e) {
     goodsList.value = []
     total.value = 0
   } finally {
+    clearTimeout(skeletonTimer)
     loading.value = false
+    showSkeleton.value = false
+    hasLoaded.value = true
   }
 }
 
@@ -72,7 +113,16 @@ function goDetail(id) {
 }
 
 function goCategory(category) {
-  router.push({ path: '/', query: { key: category.name } })
+  // 再次点击同一个分类 → 取消筛选
+  if (filtering.value && categoryId.value === Number(category.id)) {
+    router.push({ path: '/' })
+    return
+  }
+  // 按分类 ID 筛选（不再把分类名当搜索关键词）
+  router.push({
+    path: '/',
+    query: { categoryId: category.id, categoryName: category.name }
+  })
 }
 
 async function addToCart(product) {
@@ -99,17 +149,24 @@ function onPageChange(page) {
   scrollToRecommend()
 }
 
+/** 从路由参数同步筛选条件（关键词 / 分类） */
+function syncFromQuery() {
+  keyword.value = route.query.key || ''
+  categoryId.value = route.query.categoryId ? Number(route.query.categoryId) : null
+  categoryName.value = route.query.categoryName || ''
+  pageNum.value = 1
+}
+
 watch(
-  () => route.query.key,
-  (val) => {
-    keyword.value = val || ''
-    pageNum.value = 1
+  () => route.query,
+  () => {
+    syncFromQuery()
     loadGoods()
   }
 )
 
 onMounted(() => {
-  keyword.value = route.query.key || ''
+  syncFromQuery()
   loadCategories()
   loadGoods()
 })
@@ -194,11 +251,11 @@ onMounted(() => {
         <SectionHeader
           v-reveal
           :title="sectionTitle"
-          :subtitle="searching ? '' : '为你精心挑选的好物'"
+          :subtitle="subtitle"
         />
 
         <transition name="skeleton-fade" mode="out-in">
-          <div v-if="loading" key="skeleton" class="goods-grid">
+          <div v-if="showSkeleton" key="skeleton" class="goods-grid">
             <div v-for="n in pageSize" :key="n" class="skeleton-card">
               <div class="sk-cover"></div>
               <div class="sk-body">
@@ -208,7 +265,12 @@ onMounted(() => {
             </div>
           </div>
 
-          <div v-else-if="goodsList.length" key="content" class="goods-grid">
+          <div
+            v-else-if="goodsList.length"
+            :key="listKey"
+            class="goods-grid"
+            :class="{ 'is-switching': loading }"
+          >
             <ProductCard
               v-for="(g, i) in goodsList"
               :key="g.id"
@@ -219,7 +281,7 @@ onMounted(() => {
             />
           </div>
 
-          <el-empty v-else key="empty" description="暂无商品" />
+          <el-empty v-else-if="!loading" key="empty" description="暂无商品" />
         </transition>
 
         <div v-if="!loading && total > pageSize" class="pagination">
@@ -614,6 +676,13 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
+}
+
+/* 筛选切换中的旧列表：轻微降透明度，给出"在加载"的反馈而不闪烁 */
+.goods-grid.is-switching {
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
 }
 
 /* ---------------- 骨架屏 ---------------- */

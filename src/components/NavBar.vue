@@ -3,7 +3,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
-import { cartApi, notifyApi } from '@/api'
+import { cartApi, notifyApi, searchApi } from '@/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,6 +14,12 @@ const cartCount = ref(0)
 const unreadCount = ref(0)
 const scrolled = ref(false)
 const cartPop = ref(false)
+
+/* 搜索联想 */
+const suggestions = ref([])
+const showSuggest = ref(false)
+const activeIndex = ref(-1)
+let suggestTimer = null
 
 const isLogin = computed(() => userStore.isLogin)
 const nickname = computed(() => userStore.nickname)
@@ -32,7 +38,71 @@ function goHome() {
 
 function doSearch() {
   const key = keyword.value.trim()
+  closeSuggest()
   router.push({ path: '/', query: key ? { key } : {} })
+}
+
+/* ---------------- 搜索联想 ---------------- */
+async function fetchSuggest() {
+  const kw = keyword.value.trim()
+  if (!kw) {
+    suggestions.value = []
+    showSuggest.value = false
+    return
+  }
+  try {
+    const data = await searchApi.suggest(kw)
+    suggestions.value = Array.isArray(data) ? data.slice(0, 8) : []
+    showSuggest.value = suggestions.value.length > 0
+    activeIndex.value = -1
+  } catch (e) {
+    suggestions.value = []
+    showSuggest.value = false
+  }
+}
+
+/** 输入防抖：300ms 内不再输入才发请求 */
+function onInput() {
+  clearTimeout(suggestTimer)
+  suggestTimer = setTimeout(fetchSuggest, 300)
+}
+
+function pickSuggestion(text) {
+  keyword.value = text
+  doSearch()
+}
+
+function onSearchKeydown(event) {
+  if (!showSuggest.value || !suggestions.value.length) return
+
+  if (event.key === 'ArrowDown') {
+    event.preventDefault()
+    activeIndex.value = (activeIndex.value + 1) % suggestions.value.length
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault()
+    activeIndex.value =
+      (activeIndex.value - 1 + suggestions.value.length) % suggestions.value.length
+  } else if (event.key === 'Escape') {
+    closeSuggest()
+  }
+}
+
+function onSearchEnter() {
+  if (showSuggest.value && activeIndex.value >= 0) {
+    pickSuggestion(suggestions.value[activeIndex.value])
+    return
+  }
+  doSearch()
+}
+
+function closeSuggest() {
+  showSuggest.value = false
+  activeIndex.value = -1
+}
+
+function onSearchBlur() {
+  // 延迟关闭，保证候选词的点击能先触发
+  window.setTimeout(closeSuggest, 150)
 }
 
 function requireLogin() {
@@ -156,12 +226,31 @@ watch(() => userStore.token, loadBadge)
           v-model="keyword"
           placeholder="搜索商品、品牌…"
           clearable
-          @keyup.enter="doSearch"
+          @input="onInput"
+          @focus="onInput"
+          @keydown="onSearchKeydown"
+          @keyup.enter="onSearchEnter"
+          @blur="onSearchBlur"
         >
           <template #prefix>
             <el-icon><Search /></el-icon>
           </template>
         </el-input>
+
+        <transition name="suggest">
+          <div v-if="showSuggest && suggestions.length" class="suggest-panel">
+            <div
+              v-for="(s, i) in suggestions"
+              :key="s"
+              class="suggest-item"
+              :class="{ active: i === activeIndex }"
+              @mousedown.prevent="pickSuggestion(s)"
+            >
+              <el-icon :size="13"><Search /></el-icon>
+              <span class="suggest-text">{{ s }}</span>
+            </div>
+          </div>
+        </transition>
       </div>
 
       <div class="actions">
@@ -312,10 +401,62 @@ watch(() => userStore.token, loadBadge)
 }
 
 .search {
+  position: relative;
   flex: 1;
   max-width: 300px;
   margin-left: auto;
   transition: max-width 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* ---------------- 搜索联想下拉 ---------------- */
+.suggest-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 200;
+  padding: 6px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.97);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  box-shadow: 0 14px 36px rgba(31, 42, 71, 0.14);
+}
+
+.suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text-body);
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.suggest-item:hover,
+.suggest-item.active {
+  background: var(--brand-soft);
+  color: var(--brand-500);
+}
+
+.suggest-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggest-enter-active,
+.suggest-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.suggest-enter-from,
+.suggest-leave-to {
+  opacity: 0;
+  transform: translate3d(0, -6px, 0);
 }
 
 .search:focus-within {

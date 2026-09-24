@@ -18,6 +18,12 @@ const selectedSkuId = ref(null)
 const num = ref(1)
 const galleryRef = ref(null)
 
+/* ---------------- 图片放大镜 ---------------- */
+const ZOOM_LENS_SIZE = 170
+const ZOOM_SCALE = 2.6
+const zoomOn = ref(false)
+const lensPos = ref({ left: 0, top: 0, bgX: 50, bgY: 50 })
+
 const selectedSku = computed(() => {
   if (!spu.value?.skus?.length) return null
   return spu.value.skus.find((s) => s.id === selectedSkuId.value) || spu.value.skus[0]
@@ -55,6 +61,45 @@ async function load() {
     loading.value = false
   }
 }
+
+/* ---------------- 图片放大镜 ---------------- */
+function handleZoomEnter() {
+  if (spu.value?.mainImage) zoomOn.value = true
+}
+
+function handleZoomLeave() {
+  zoomOn.value = false
+}
+
+function handleZoomMove(event) {
+  const el = event.currentTarget
+  if (!el || !spu.value?.mainImage) return
+
+  const rect = el.getBoundingClientRect()
+  const px = event.clientX - rect.left
+  const py = event.clientY - rect.top
+  const half = ZOOM_LENS_SIZE / 2
+
+  // 圆窗位置贴边时保持完整，放大内容仍按鼠标真实位置换算
+  lensPos.value = {
+    left: Math.max(half, Math.min(rect.width - half, px)),
+    top: Math.max(half, Math.min(rect.height - half, py)),
+    bgX: (px / rect.width) * 100,
+    bgY: (py / rect.height) * 100
+  }
+}
+
+const lensStyle = computed(() => {
+  const img = spu.value?.mainImage
+  if (!img) return {}
+  return {
+    left: `${lensPos.value.left}px`,
+    top: `${lensPos.value.top}px`,
+    backgroundImage: `url("${img}")`,
+    backgroundSize: `${ZOOM_SCALE * 100}% ${ZOOM_SCALE * 100}%`,
+    backgroundPosition: `${lensPos.value.bgX}% ${lensPos.value.bgY}%`
+  }
+})
 
 async function loadRelated() {
   try {
@@ -151,10 +196,22 @@ watch(
     <div v-else-if="spu" class="detail-main">
       <!-- 图片 -->
       <div ref="galleryRef" class="gallery">
-        <div class="gallery-main">
+        <div
+          class="gallery-main"
+          @mouseenter="handleZoomEnter"
+          @mouseleave="handleZoomLeave"
+          @mousemove="handleZoomMove"
+        >
           <img v-if="spu.mainImage" :src="spu.mainImage" :alt="spu.name" />
           <div v-else class="img-placeholder">{{ spu.name.slice(0, 1) }}</div>
+
+          <div v-if="zoomOn" class="zoom-lens" :style="lensStyle"></div>
         </div>
+
+        <p v-if="spu.mainImage" class="zoom-tip">
+          <el-icon :size="12"><Search /></el-icon>
+          鼠标移到图片上可放大查看
+        </p>
       </div>
 
       <!-- 信息 -->
@@ -294,6 +351,7 @@ watch(
 }
 
 .gallery-main {
+  position: relative;
   aspect-ratio: 1 / 1;
   border-radius: 22px;
   background: var(--surface);
@@ -302,17 +360,37 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: zoom-in;
 }
 
 .gallery-main img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
-.gallery-main:hover img {
-  transform: scale(1.06);
+/* 放大镜圆窗 */
+.zoom-lens {
+  position: absolute;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  box-shadow: 0 12px 32px rgba(31, 42, 71, 0.24);
+  background-repeat: no-repeat;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.zoom-tip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--text-hint);
 }
 
 .img-placeholder {
