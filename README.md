@@ -4,6 +4,18 @@
 
 前后端分离部署，通过 API 网关（`localhost:8000`）以 REST 接口通信，覆盖「浏览商品 → 加入购物车 → 确认订单 → 支付 → 查看订单」的完整购物闭环。
 
+## 界面预览
+
+| 首页 | 商品详情 | 购物车 |
+| :--: | :--: | :--: |
+| ![首页](docs/screenshots/02-home.jpg) | ![商品详情](docs/screenshots/03-goods.jpg) | ![购物车](docs/screenshots/04-cart.jpg) |
+
+| 我的订单 | 通知中心 | 登录 / 注册 |
+| :--: | :--: | :--: |
+| ![我的订单](docs/screenshots/05-order.jpg) | ![通知中心](docs/screenshots/06-notify.jpg) | ![登录注册](docs/screenshots/01-login.jpg) |
+
+> 以上为本地运行的实际界面截图，商品图托管于阿里云 OSS。
+
 ## 技术栈
 
 | 分类 | 选型 |
